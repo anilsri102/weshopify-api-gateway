@@ -1,0 +1,94 @@
+spring: 
+  application: 
+    name: weshopify-platform-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true # to locate the routes in the registry
+      routes:
+      
+       #Categories service route
+       - id: WESHOPIFY-CATEGORY-SERVICE
+         uri: lb://WESHOPIFY-CATEGORY-SERVICE
+         predicates: 
+          - Path=/gateway-catg-sv/**
+         filters:
+            - RewritePath=/gateway-catg-sv/(?<segment>.*),/${segment}
+            
+         #Brands Service Route 
+       - id: WESHOPIFY-BRANDS-SERVICE
+         uri: lb://WESHOPIFY-BRANDS-SERVICE
+         predicates: 
+          - Path=/gateway-brands-svc/**
+         filters:
+            -  RewritePath=/gateway-brands-svc/(?<segment>.*),/${segment}
+            
+       - id: openapi
+         uri: http://localhost:${server.port}
+         predicates:
+          - Path=/v3/api-docs/**
+         filters:
+          - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${SERVICE_REGISTRY_HOST:localhost}:${SERVICE_REGISTRY_PORT:5011}/eureka/
+  instance:
+    hostname: ${SERVICE_REGISTRY_HOST:localhost}
+    prefer-ip-address: true
+    
+management:
+  # from the springboot3.x onwards we have to 
+  #explicitely enable gateway endpoint
+  endpoint:
+    gateway:
+      enabled: true
+      
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  
+  tracing: 
+     sampling: 
+        probability: 1.0
+
+logging:
+   pattern: 
+     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+             
+server:
+  port: 5012
+
+
+  
+springdoc:
+  enable-native-support: true
+  api-docs:
+    groups:
+      enabled: true
+    enabled: true
+  group-configs:
+    - group: api-gateway
+      packages-to-scan:
+        - com.weshopify.platform
+      display-name: API Gateway
+    - group: category-service
+      paths-to-match:
+        - /gateway-catg-sv/**
+      display-name: category Service
+    - group: brand-service
+      paths-to-match:
+        - /gateway-brand-sv/**
+      display-name: Brand Service
+  swagger-ui:
+    config-url: /v3/api-docs/swagger-config
+    url: /v3/api-docs
+    urls:
+      - url: /v3/api-docs
+        name: API Gateway
+      - url: /gateway-catg-sv/v3/api-docs
+        name: Category Service
+      - url: /gateway-brand-sv/v3/api-docs
+        name: Brand Service
