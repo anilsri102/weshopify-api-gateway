@@ -1,1 +1,34 @@
+- name: weshopify-api-gateway-playbook
+  hosts: docker-host
+  become: 'yes'
+  become_user: docker-admin
+  tasks:
+    - name: create an app directory
+      shell: mkdir gateway-app-dir && chmod 777 gateway-app-dir
 
+    - name: create artifact target directory
+      shell: mkdir gateway-app-dir/target && chmod 777 gateway-app-dir/target
+
+    - name: copy the jfrog file from ansible to docker
+      copy: src=/opt/weshopify-api-gateway/ci-files/jfrog.sh dest=gateway-app-dir
+
+    - name: copy the Dockerfile to Docker server
+      copy: src=/opt/weshopify-api-gateway/ci-files/Dockerfile dest=gateway-app-dir
+  
+    - name: download the artifact from artifactory
+      shell: chmod 777 ./gateway-app-dir/jfrog.sh && sh ./gateway-app-dir/jfrog.sh
+
+    - name: change the permission of dockerfile
+      shell: chmod 777 ./gateway-app-dir/Dockerfile   
+
+    - name: build the docker image
+      shell: echo admin | sudo -S docker build -f ./gateway-app-dir/Dockerfile --tag agulimi/weshopify-gateway-svc-img .  
+
+    - name: push the docker image to dockerhub
+      shell: echo admin | sudo -S docker push agulimi/weshopify-gateway-svc-img
+
+    - name: After the push remove the image locally  
+      shell: echo admin | sudo -S docker rmi agulimi/weshopify-gateway-svc-img 
+
+    - name: remove the gateway-app-dir
+      shell: rm -rf gateway-app-dir  
