@@ -35,12 +35,22 @@ pipeline{
                 echo "================Artifact Deploy is Completed============="
             }
         }
-        stage("Copy the files to ansible server"){
+         stage("Copy the files to ansible server"){
             steps{
                 echo "Connecting to Ansible Server"
-               
+                sshagent(['ANSIBLE_SERVER']){
+                    sh 'scp Dockerfile ansible-admin@172.31.0.106:/opt/weshopify-api-gateway/ci-files'
+                    sh 'scp weshopify-api-gateway-playbook.yml ansible-admin@172.31.0.106:/opt/weshopify-api-gateway/ci-files'
+                    sh 'scp jfrog.sh ansible-admin@172.31.0.106:/opt/weshopify-api-gateway/ci-files'
+                    sh '''
+                        ssh -tt ansible-admin@172.31.0.106 << EOF
+                            ansible-playbook /opt/weshopify-api-gateway/ci-files/weshopify-api-gateway-playbook.yml
+                            exit
+                        EOF    
+
+                    '''
                 }
-            
+            }
         }
     }    
 
